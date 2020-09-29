@@ -1,0 +1,3 @@
+﻿fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist
+50000,35,19,PHEV50,BEV,Sedan,HA75,Equal,MostL2,Home60
+10000,25,-20,PHEV20,EQUAL,SUV,HA50,MostL1,MostL1,Home100

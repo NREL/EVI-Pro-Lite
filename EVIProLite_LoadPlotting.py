@@ -48,8 +48,8 @@ param_dict = {
     "work_power_dist" : ['MostL1','MostL2','Equal'],
     "pref_dist" : ['Home60','Home80','Home100']   
 }
-scenario_path = "/Users/dweigl/Documents/Projects/EVI-Pro/Lite/APIScriptTester.csv"
-temp_path = "/Users/dweigl/Documents/Projects/EVI-Pro/Lite/Temps_test.csv"
+scenario_path = "./InputData/Scenarios_test.csv"
+temp_path = "./ShortTemps_test.csv"
 
 
 
@@ -72,7 +72,7 @@ def run(scenario_path, temp_path=""):
             dow_dict = dow_dict.fromkeys(['weekday_load_profile','weekend_load_profile'])
             for dow in dow_dict.keys():
                 dow_dict[dow] = pd.DataFrame(final_result[scenario][dow].to_list(),index = final_result[scenario].index) 
-                dow_dict[dow].T.to_csv('scenario'+str(scenario)+"_"+dow.split("_")[0]+"_gridLoad.csv")
+                dow_dict[dow].T.to_csv('./OutputData/scenario'+str(scenario)+"_"+dow.split("_")[0]+"_gridLoad.csv")
             final_result[scenario] = dow_dict
 
     #If we have a temperature csv, read it and pass it to function
@@ -293,6 +293,6 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     plt.savefig(filename)
     plt.close()
     
-#startTime = datetime.now() 
-#run(scenario_path)
-#print(datetime.now() - startTime)
+startTime = datetime.now() 
+run(scenario_path)
+print(datetime.now() - startTime)
