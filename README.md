@@ -1,6 +1,7 @@
 
 EVI-Pro Lite API Load Profile Generation
-#TO RUN
+
+To Run:
 -Run this script by opening terminal and navigating to the directory the script is downloaded to
 -Enter 'python' to start python shell and 'import EVIProLite_LoadPlotting'
 -EVIProLite_LoadPlotting.run("<file path to scenario csv with parameters as described above>","<file path to optional temperature csv>")
@@ -8,7 +9,7 @@ EVI-Pro Lite API Load Profile Generation
 	You can run the script using the provided csvs as a test with:
 	-EVIProLite_LoadPlotting.run("./InputData/Scenarios_test.csv","./InputData/ShortTemps_test.csv")
 
-#PLOTTING
+Plotting:
 -The script will produce plots automatically as part of the run function but csvPlotting can alternatively be used to import data and plot
 -Defaults to plotting the first week of data or alternatively the user can specify the number of days and the start date
 -The plots will be saved to the OutputData folder
