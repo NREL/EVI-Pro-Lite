@@ -1,26 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-README
 
-- Input csv must have values in order as follows: 
-- fleet_size, mean_dvmt, temp_c, pev_type, pev_dist, class_dist, home_access_dist, home_power_dist, work_power_dist, pref_dist 
-- Each row then represents a single run. All runs from the input csv are output in a dataframe with data for both weekend and weekday
-
-
-- Temperature csv needs two columns: "date" and "temperature"
-    - Each row in the temperature csv is one day and function aggregates across all included dates. 
-    - Graph is cumulative so doesn't matter how many days- it is defined by user in the temp_csv input
-- Assume temp CSV is in celsius
-
-#TO RUN
--Run this script by opening terminal and navigating to the directory the script is downloaded to
--Enter 'python' to start python shell and 'import EVIProLite_CSVScript'
--'EVIProLite_CSVScript.run("<file path to scenario csv with parameters as described above>","<file path to optional temperature csv>")
-
-#PLOTTING
--The script will produce plots automatically as part of the run function but csvPlotting can alternatively be used to import data and plot
--Defaults to plotting the first week of data or alternatively the user can specify the number of days and the start date
-"""
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -46,12 +25,10 @@ param_dict = {
     "home_access_dist" : ['HA100','HA75','HA50',],
     "home_power_dist" : ['MostL1','MostL2','Equal'],
     "work_power_dist" : ['MostL1','MostL2','Equal'],
-    "pref_dist" : ['Home60','Home80','Home100']   
+    "pref_dist" : ['Home60','Home80','Home100'],  
+    "res_charging" : ['min_delay','max_delay','midnight_charge'],
+    "work_charging" : ['min_delay','max_delay']
 }
-scenario_path = "./InputData/Scenarios_test.csv"
-temp_path = "./ShortTemps_test.csv"
-
-
 
 #Kicks off the run either for just individual scenarios or for scenarios for aggregated temperature profiles (if temp_path is included)
 #By default, saves weekend/weekday plots for each scenario in the folder this is run from
@@ -66,18 +43,20 @@ def run(scenario_path, temp_path=""):
     scenario_csv = pd.read_csv(scenario_path)
     
     if temp_path=="":
+        print("Running API without user-defined temperatures...")
         final_result = csv_run(scenario_csv)
         for scenario in final_result.keys():
             dow_dict = {}
             dow_dict = dow_dict.fromkeys(['weekday_load_profile','weekend_load_profile'])
             for dow in dow_dict.keys():
                 dow_dict[dow] = pd.DataFrame(final_result[scenario][dow].to_list(),index = final_result[scenario].index) 
-                dow_dict[dow].T.to_csv('./OutputData/scenario'+str(scenario)+"_"+dow.split("_")[0]+"_gridLoad.csv")
+                dow_dict[dow].T.to_csv('./OutputData/scen'+str(scenario)+"_"+dow.split("_")[0].capitalize()+"_gridLoad.csv")
             final_result[scenario] = dow_dict
 
     #If we have a temperature csv, read it and pass it to function
     else:
         temp_csv= pd.read_csv(temp_path)
+        print("Using input csv for temperatures to run the API...")
         temp_csv['date'] = pd.to_datetime(temp_csv['date'])
         temp_csv['date'] = temp_csv['date'].dt.date
     # Saturday and Sunday are 5 and 6, Monday is 0. <5 is weekday
@@ -87,9 +66,13 @@ def run(scenario_path, temp_path=""):
         final_result = temp_run(scenario_csv,temp_csv)
 
 #Plotting and Save CSVs with data
-        for scenario,row in scenario_csv.iterrows():
+    for scenario,row in scenario_csv.iterrows():
+        if temp_path == "":
+            for dow in final_result[scenario]:
+                notemp_loadPlotting(final_result[scenario][dow],scenario,dow)
+        else:
             loadPlotting(final_result,scenario)
-            final_result[scenario].to_csv('scenario'+str(scenario)+"_gridLoad.csv")
+            final_result[scenario].to_csv('./OutputData/scen'+str(scenario)+"_temp_gridLoad.csv")
  
 
 
@@ -162,15 +145,17 @@ def csv_run(input_csv,smoothing = 1):
 def API_run(df_row, smoothing):  
     #Assign values for each parameter- must be in order given in documentation
     #if csv_temp parameter is defined, that means it is passed in via csv. Must replace temp_c with that value based on available temps defined for the tool
-    if len(df_row)==13:
-        date,weekday,temp_c,fleet_size,mean_dvmt,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist,scenario_id = df_row
+    if len(df_row)==15:
+        date,weekday,temp_c,fleet_size,mean_dvmt,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist,res_charging,work_charging,scenario_id = df_row
         print(date)
     else:
-        fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist = df_row
+        fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist,res_charging,work_charging = df_row
     temp_c = find_nearest(param_dict["temp_c"],temp_c)
-    #day_of_week and dest_type are used to generate plots- therefore all selections are used (and they are omitted from choice selection)
+    #day_of_week and dest_type are used to generate plots- therefore these cannot be set manually
     #Generate load profiles for home, public, and work on both weekends and weekdays and for different charger levels according to the selected parameters
-    url = """https://evi-pro-vue.afdc-stage.nrel.gov/evi-pro-lite/api/v1/daily-load-profile?fleet_size=%s&mean_dvmt=%s&temp_c=%s&pev_type=%s&pev_dist=%s&class_dist=%s&home_access_dist=%s&home_power_dist=%s&work_power_dist=%s&pref_dist=%s""" %(fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist)
+    base_url = """https://evi-pro-vue.afdc-stage.nrel.gov/evi-pro-lite/api/v1/daily-load-profile?"""
+    url = base_url+"""fleet_size=%s&mean_dvmt=%s&temp_c=%s&pev_type=%s&pev_dist=%s&class_dist=%s&home_access_dist=%s&home_power_dist=%s&work_power_dist=%s&pref_dist=%s&res_charging=%s&work_charging=%s""" \
+        %(fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist,res_charging,work_charging)
     url=url.replace("\\", "")
     record_str = requests.get(url).text
     record_str = record_str.replace("'", "\"")
@@ -214,13 +199,13 @@ def loadPlotting(result,scenario=0,filename = "",week=1):
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d\n%H:%M"))
 
 #Only plot the first week of data unless told otherwise
-    if week==1:
-        x_labels = result[scenario].index[0:672]
-        ax.stackplot(x_labels,result[scenario][["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]][0:672].T)
-    else:
-        x_labels = result[scenario].index
-        ax.stackplot(x_labels,result[scenario][["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]].T)
-    
+        if week==1:
+            x_labels = result[scenario].index[0:672]
+            ax.stackplot(x_labels,result[scenario][["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]][0:672].T)
+        else:
+            x_labels = result[scenario].index
+            ax.stackplot(x_labels,result[scenario][["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]].T)
+        
     plt.legend(['Home L1','Home L2','Work L1','Work L2','Public L2','DC Fast'],fontsize = 14,loc = 'upper left')
     plt.xlabel('Date',size=18)
     plt.ylabel('Grid Load [kW]',size=18)
@@ -236,9 +221,39 @@ def loadPlotting(result,scenario=0,filename = "",week=1):
     ax.xaxis.set_major_locator(plt.MaxNLocator(8))
 
     if filename == "":
-        filename = "scenario"+str(scenario)+"_gridLoad"
+        filename = "./OutputData/scen"+str(scenario)+"_gridLoad"
+        
     plt.savefig(filename)
     plt.close()
+
+
+#Plotting for when there is no temperature data input and the output from API call is a single day's load profile for weekend and for weekday
+def notemp_loadPlotting(result,scenario, dow,filename = ""):
+    
+    fig = plt.figure(figsize = (12,5))
+    ax = plt.axes()
+    xaxis_labels = [(x * 15.0)/60.0 for x in range(0,96)]
+    ax.stackplot(xaxis_labels,result)
+    day_title = dow.split("_")[0].capitalize()
+    
+    plt.legend(['Home L1','Home L2','Work L1','Work L2','Public L2','DC Fast'],fontsize = 14,loc = 'upper left')
+    plt.xlabel('Hour of Day',size=18)
+    plt.ylabel('Grid Load [kW]',size=18)
+    plt.title(day_title+' Fleet-wide Grid load: Scenario '+str(scenario),size=18)
+    plt.xticks(size=14)
+    plt.yticks(size=14)
+
+    ymin, ymax = ax.get_ylim()
+    ax.set_xlim([0,24])
+
+    ax.set_ylim([0,ymax*1.25])   
+    ax.xaxis.set_major_locator(plt.MaxNLocator(6)) 
+    
+    if filename == "":
+        filename = "scen"+str(scenario)+"_"+day_title+"_gridLoad.png"
+        plt.savefig("./OutputData/"+filename)
+    plt.close()
+    
     
     
 ##Stack Plot
@@ -293,6 +308,9 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     plt.savefig(filename)
     plt.close()
     
-startTime = datetime.now() 
-run(scenario_path)
-print(datetime.now() - startTime)
+#scenario_path = "./InputData/Scenarios_test.csv"
+#temp_path = "./InputData/ShortTemps_test.csv"
+
+#startTime = datetime.now() 
+#run(scenario_path,temp_path)
+#print(datetime.now() - startTime)

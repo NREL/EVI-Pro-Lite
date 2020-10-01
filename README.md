@@ -15,7 +15,7 @@ Plotting:
 - The plots will be saved to the OutputData folder
 
 - Input csv must have values in order as follows: 
-	- fleet_size, mean_dvmt, temp_c, pev_type, pev_dist, class_dist, home_access_dist, home_power_dist, work_power_dist, pref_dist 
+	- fleet_size, mean_dvmt, temp_c, pev_type, pev_dist, class_dist, home_access_dist, home_power_dist, work_power_dist, pref_dist, res_charging, work_charging 
 	- View ./InputData/Scenarios_test.csv for proper formatting of this file
 - Each row then represents a single run. All runs from the input csv are output in a dataframe with data for both weekend and weekday
 
