@@ -310,13 +310,3 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     plt.savefig(os.path.join(os.path.curdir,filename))
     plt.close()
  
-  
-    
-scenario_path = "./InputData/Scenarios_test.csv"
-temp_path = "./InputData/ShortTemps_test.csv"
-
-startTime = datetime.now() 
-run(scenario_path,temp_path)
-print(datetime.now() - startTime)
-    
-csvPlotting("./OutputData/scen0_temp_gridLoad.csv","2019-01-05",4,"test")  
