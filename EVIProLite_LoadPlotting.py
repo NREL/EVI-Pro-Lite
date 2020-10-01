@@ -13,6 +13,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 from datetime import datetime,timedelta
+import os
 
 #Input values
 param_dict = {
@@ -50,7 +51,7 @@ def run(scenario_path, temp_path=""):
             dow_dict = dow_dict.fromkeys(['weekday_load_profile','weekend_load_profile'])
             for dow in dow_dict.keys():
                 dow_dict[dow] = pd.DataFrame(final_result[scenario][dow].to_list(),index = final_result[scenario].index) 
-                dow_dict[dow].T.to_csv('./OutputData/scen'+str(scenario)+"_"+dow.split("_")[0].capitalize()+"_gridLoad.csv")
+                dow_dict[dow].T.to_csv(os.path.join(os.path.curdir,'OutputData','/scen'+str(scenario)+"_"+dow.split("_")[0].capitalize()+"_gridLoad.csv"))
             final_result[scenario] = dow_dict
 
     #If we have a temperature csv, read it and pass it to function
@@ -72,7 +73,7 @@ def run(scenario_path, temp_path=""):
                 notemp_loadPlotting(final_result[scenario][dow],scenario,dow)
         else:
             loadPlotting(final_result,scenario)
-            final_result[scenario].to_csv('./OutputData/scen'+str(scenario)+"_temp_gridLoad.csv")
+            final_result[scenario].to_csv(os.path.join(os.path.curdir,'OutputData','scen'+str(scenario)+"_temp_gridLoad.csv"))
  
 
 
@@ -221,9 +222,9 @@ def loadPlotting(result,scenario=0,filename = "",week=1):
     ax.xaxis.set_major_locator(plt.MaxNLocator(8))
 
     if filename == "":
-        filename = "./OutputData/scen"+str(scenario)+"_gridLoad"
+        filename = "scen"+str(scenario)+"_gridLoad"
         
-    plt.savefig(filename)
+    plt.savefig(os.path.join(os.path.curdir,'OutputData',filename))
     plt.close()
 
 
@@ -251,7 +252,7 @@ def notemp_loadPlotting(result,scenario, dow,filename = ""):
     
     if filename == "":
         filename = "scen"+str(scenario)+"_"+day_title+"_gridLoad.png"
-        plt.savefig("./OutputData/"+filename)
+        plt.savefig(os.path.join(os.path.curdir,"OutputData",filename))
     plt.close()
     
     
@@ -266,7 +267,7 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     figlen = 12+len(result)/1000
     fig = plt.figure(figsize = (figlen,7))
     ax = plt.axes()
-    
+
 #Only plot the first week of data unless told otherwise
     if startdate=="":
         x_labels = result.date[0:numdays*96]+ " "+ result.time[0:numdays*96]
@@ -275,14 +276,15 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     else:
         print("Assumed startdate in yyyy-mm-dd format...")
         try:
-            startdate = datetime.strptime(startdate,"%Y-%m-%d")
+            datetime.strptime(startdate,"%Y-%m-%d")
         except:
             print("Start date in wrong format. Need yyyy-mm-dd")
 #Get index of first entry for start date (at time 00:00)       
         startdate_idx = result[result.date==startdate].index[0]
-        x_labels = result.date[startdate_idx:numdays*96]+ " "+ result.time[startdate_idx:numdays*96]
+        enddate_idx = startdate_idx+numdays*96
+        x_labels = result.date[startdate_idx:enddate_idx]+ " "+ result.time[startdate_idx:enddate_idx]
         x_labels = [datetime.strptime(x,"%Y-%m-%d %H:%M:%S") for x in x_labels]
-        ax.stackplot(x_labels,result[["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]][startdate_idx:numdays*96].T)
+        ax.stackplot(x_labels,result[["home_l1","home_l2","work_l1","work_l2","public_l2","public_l3"]][startdate_idx:enddate_idx].T)
     
     if (len(x_labels)>1000):
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
@@ -292,7 +294,7 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     plt.legend(['Home L1','Home L2','Work L1','Work L2','Public L2','DC Fast'],fontsize = 14,loc = 'upper left')
     plt.xlabel('Date',size=18)
     plt.ylabel('Grid Load [kW]',size=18)
-    plt.title('Fleet-wide Grid load: '+numdays+" days",size=18)
+    plt.title('Fleet-wide Grid load: '+str(numdays)+" days",size=18)
     plt.xticks(size=10)
     plt.yticks(size=14)
 
@@ -304,13 +306,17 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
     ax.xaxis.set_major_locator(plt.MaxNLocator(8))
 
     if filename == "":
-        filename = "gridLoad_plot"
-    plt.savefig(filename)
+        filename = str(numdays)+"days_gridLoad_plot"
+    plt.savefig(os.path.join(os.path.curdir,filename))
     plt.close()
+ 
+  
     
-#scenario_path = "./InputData/Scenarios_test.csv"
-#temp_path = "./InputData/ShortTemps_test.csv"
+scenario_path = "./InputData/Scenarios_test.csv"
+temp_path = "./InputData/ShortTemps_test.csv"
 
-#startTime = datetime.now() 
-#run(scenario_path,temp_path)
-#print(datetime.now() - startTime)
+startTime = datetime.now() 
+run(scenario_path,temp_path)
+print(datetime.now() - startTime)
+    
+csvPlotting("./OutputData/scen0_temp_gridLoad.csv","2019-01-05",4,"test")  
