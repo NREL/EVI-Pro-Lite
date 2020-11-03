@@ -34,7 +34,7 @@ param_dict = {
 #Kicks off the run either for just individual scenarios or for scenarios for aggregated temperature profiles (if temp_path is included)
 #By default, saves weekend/weekday plots for each scenario in the folder this is run from
 
-def run(scenario_path, temp_path=""):
+def run(scenario_path, temp_path="", api_key = "DEMO_KEY"):
 
     #Ensure scenario_path is valid
     try:
@@ -45,7 +45,7 @@ def run(scenario_path, temp_path=""):
     
     if temp_path=="":
         print("Running API without user-defined temperatures...")
-        final_result = csv_run(scenario_csv)
+        final_result = csv_run(scenario_csv,api_key)
         for scenario in final_result.keys():
             dow_dict = {}
             dow_dict = dow_dict.fromkeys(['weekday_load_profile','weekend_load_profile'])
@@ -64,7 +64,7 @@ def run(scenario_path, temp_path=""):
         temp_csv['weekday'] = temp_csv['date'].apply(lambda x: x.weekday())#<5)
         temp_csv['temp_c'] = temp_csv['temperature']
         temp_csv.drop('temperature',axis = 1,inplace=True)
-        final_result = temp_run(scenario_csv,temp_csv)
+        final_result = temp_run(scenario_csv,temp_csv,api_key)
 
 #Plotting and Save CSVs with data
     for scenario,row in scenario_csv.iterrows():
@@ -79,7 +79,7 @@ def run(scenario_path, temp_path=""):
 
 #Applies API_Run to every row in temp_csv. This is only run if using a csv with temperature data
 #Sends in a row based on a single scenario and a set of temperatures (each representing one day or time interval to be averaged)
-def temp_run(scenario_csv,temp_csv,smoothing=1):
+def temp_run(scenario_csv,temp_csv,api_key,smoothing=1):
     output_dict = {}
     
     for scenario_id, scenario_row in scenario_csv.iterrows(): #Each row here represents a particular scenario defined by the user. row index is used as scenario identifier
@@ -90,7 +90,7 @@ def temp_run(scenario_csv,temp_csv,smoothing=1):
     #For each day/temperature in the given csv, run the API. 
     #output_dict will have one key per scenario, each corresponding to a df with a row per 15 minute time bucket
         for temp_id,temp_row in temp_df.iterrows():
-            result = API_run(temp_row,smoothing)
+            result = API_run(temp_row,api_key,smoothing)
             result['date'] = temp_row.date
             result['time'] = result.index
             result['weekday'] = temp_row.weekday
@@ -122,7 +122,7 @@ def temp_run(scenario_csv,temp_csv,smoothing=1):
     return output_dict
 
 #Takes in a csv with one row for each parameter that is going to be run
-def csv_run(input_csv,smoothing = 1):
+def csv_run(input_csv, api_key, smoothing = 1):
     output_dict = {}
     #output_metadata_dict = {}
     for row_id, row in input_csv.iterrows(): #Each row here represents a particular scenario defined by the user. row_idx is used as scenario identifier
@@ -138,12 +138,12 @@ def csv_run(input_csv,smoothing = 1):
                 break
 
             #Run API_run and append to new series to return with all data
-            output_dict[row_id] = (API_run(row,smoothing))
+            output_dict[row_id] = (API_run(row,api_key,smoothing))
     return output_dict
 
 
 #This function is called by temp_apply and returns output from the API based on the row sent by temp_apply
-def API_run(df_row, smoothing):  
+def API_run(df_row, api_key, smoothing):  
     #Assign values for each parameter- must be in order given in documentation
     #if csv_temp parameter is defined, that means it is passed in via csv. Must replace temp_c with that value based on available temps defined for the tool
     if len(df_row)==15:
@@ -154,7 +154,7 @@ def API_run(df_row, smoothing):
     temp_c = find_nearest(param_dict["temp_c"],temp_c)
     #day_of_week and dest_type are used to generate plots- therefore these cannot be set manually
     #Generate load profiles for home, public, and work on both weekends and weekdays and for different charger levels according to the selected parameters
-    base_url = """https://evi-pro-vue.afdc-stage.nrel.gov/evi-pro-lite/api/v1/daily-load-profile?"""
+    base_url = """https://developer.nrel.gov/api/evi-pro-lite/v1/daily-load-profile?api_key=%s&""" %(api_key)
     url = base_url+"""fleet_size=%s&mean_dvmt=%s&temp_c=%s&pev_type=%s&pev_dist=%s&class_dist=%s&home_access_dist=%s&home_power_dist=%s&work_power_dist=%s&pref_dist=%s&res_charging=%s&work_charging=%s""" \
         %(fleet_size,mean_dvmt,temp_c,pev_type,pev_dist,class_dist,home_access_dist,home_power_dist,work_power_dist,pref_dist,res_charging,work_charging)
     url=url.replace("\\", "")
@@ -164,7 +164,8 @@ def API_run(df_row, smoothing):
     try:
         raw_json['results']
     except KeyError:
-        print(raw_json['errors'])
+        print("ERROR:"+raw_json['error']['code']+"\n")
+        raise
     
 #if day is a weekday, return the weekday load profile for the day, otherwise return weekend
     try:
@@ -309,4 +310,3 @@ def csvPlotting(path,startdate = "",numdays = 7,filename = ""):
         filename = str(numdays)+"days_gridLoad_plot"
     plt.savefig(os.path.join(os.path.curdir,filename))
     plt.close()
- 

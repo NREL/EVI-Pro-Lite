@@ -11,7 +11,9 @@
 **To Run**
 - Run this script by opening terminal and navigating to the directory the script is downloaded to
 - Enter 'python' to start python shell and 'import EVIProLite_LoadPlotting'
-- `EVIProLite_LoadPlotting.run("<file path to scenario csv with parameters as described above>","<file path to optional temperature csv>")`
+- `EVIProLite_LoadPlotting.run("<file path to scenario csv with parameters as described above>","<file path to optional temperature csv>","<Your API Key>")`
+	- Without your own API Key, the script will use the public key (DEMO_KEY) which is rate limited
+	- Sign up for an API Key here: https://developer.nrel.gov/signup/
 
 	You can run the script using the provided csvs as a test with:
 	`EVIProLite_LoadPlotting.run("./InputData/Scenarios_test.csv","./InputData/ShortTemps_test.csv")`
