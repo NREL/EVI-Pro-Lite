@@ -83,7 +83,9 @@ def temp_run(scenario_csv,temp_csv,api_key,smoothing=1):
     output_dict = {}
     
     for scenario_id, scenario_row in scenario_csv.iterrows(): #Each row here represents a particular scenario defined by the user. row index is used as scenario identifier
+        input_temps = temp_csv['temp_c']
         temp_df = temp_csv.assign(**scenario_row)
+        temp_df['temp_c'] = input_temps #ensure list of temperatures from input csv take priority over temp_c from scenario
         temp_df['scenario_id'] = scenario_id
         output_df = pd.DataFrame()
         
