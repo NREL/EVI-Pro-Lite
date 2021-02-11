@@ -51,7 +51,7 @@ def run(scenario_path, temp_path="", api_key = "DEMO_KEY"):
             dow_dict = dow_dict.fromkeys(['weekday_load_profile','weekend_load_profile'])
             for dow in dow_dict.keys():
                 dow_dict[dow] = pd.DataFrame(final_result[scenario][dow].to_list(),index = final_result[scenario].index) 
-                dow_dict[dow].T.to_csv(os.path.join(os.path.curdir,'OutputData','/scen'+str(scenario)+"_"+dow.split("_")[0].capitalize()+"_gridLoad.csv"))
+                dow_dict[dow].T.to_csv(os.path.join(os.getcwd(),'OutputData','scen'+str(scenario)+"_"+dow.split("_")[0].capitalize()+"_gridLoad.csv"))
             final_result[scenario] = dow_dict
 
     #If we have a temperature csv, read it and pass it to function
