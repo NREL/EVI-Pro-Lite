@@ -38,3 +38,18 @@
     - Graph is cumulative so doesn't matter how many days are included in the input
 - Assume temp CSV is in celsius
 
+Available parameter values for running the tool include: 
+
+    "fleet_size" : [50000,10000,1000],
+    "mean_dvmt" : [45,35,25],
+    "temp_c" : [40,30,20,10,0,-10,-20],
+    "pev_type" : ['PHEV20','PHEV50','BEV100','BEV250'],
+    "pev_dist" : ['BEV','PHEV','EQUAL'],
+    "class_dist" : ['Sedan','SUV','Equal'],
+    "home_access_dist" : ['HA100','HA75','HA50',],
+    "home_power_dist" : ['MostL1','MostL2','Equal'],
+    "work_power_dist" : ['MostL1','MostL2','Equal'],
+    "pref_dist" : ['Home60','Home80','Home100'],  
+    "res_charging" : ['min_delay','max_delay','midnight_charge'],
+    "work_charging" : ['min_delay','max_delay']
+
